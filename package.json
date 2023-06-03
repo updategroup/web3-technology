@@ -30,6 +30,7 @@
     "cross-env": "^7.0.3",
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.2",
+    "lucid-cardano": "^0.10.5",
     "next": "13.4.2",
     "next-qrcode": "^2.4.1",
     "next-seo": "^6.0.0",
