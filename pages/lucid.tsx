@@ -1,12 +1,4 @@
 import { Blockfrost, Constr, Data, Lucid, SpendingValidator, TxHash, toHex, fromText, OutRef, Redeemer } from "lucid-cardano";
-import {
-    resolvePlutusScriptAddress,
-    Transaction,
-    resolvePaymentKeyHash,
-    KoiosProvider,
-    resolveDataHash,
-} from "@meshsdk/core";
-import type { PlutusScript } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 // import * as cbor from "https://deno.land/x/cbor@v1.4.1/index.js";
@@ -84,10 +76,6 @@ const LucidPage: NextPageWithLayout = () => {
             script: SC,
         };
 
-        // console.log("matchingNumberScript: ",matchingNumberScript)
-        // const validator: any = lucid.utils.validatorToAddress(
-        //     matchingNumberScript,
-        // );
         const publicKeyHash: any = lucid.utils.getAddressDetails(
             await lucid.wallet.address()
         ).paymentCredential?.hash;
@@ -96,7 +84,7 @@ const LucidPage: NextPageWithLayout = () => {
 
         const datum = Data.to(new Constr(0, [publicKeyHash]));
 
-        const txHash = await lock(5000000n, { into: validator, owner: datum });
+        const txHash = await lock(3000000n, { into: validator, owner: datum });
 
         await lucid.awaitTx(txHash);
 
@@ -111,6 +99,7 @@ const LucidPage: NextPageWithLayout = () => {
     ): Promise<TxHash> {
         const [utxo] = await lucid.utxosByOutRef([ref]);
         console.log("utxo----", utxo)
+    
 
         const tx = await lucid
             .newTx()
@@ -127,6 +116,7 @@ const LucidPage: NextPageWithLayout = () => {
     }
 
     const handUnLock = async () => {
+       try {
         const api: any = await window.cardano.eternl.enable();
 
         lucid.selectWallet(api);
@@ -136,6 +126,9 @@ const LucidPage: NextPageWithLayout = () => {
             type: "PlutusV2",
             script: SC,
         };
+        // const contractAddress = lucid.utils.validatorToAddress(validator);
+        // console.log("address------", contractAddress)
+
         const utxo: OutRef = { txHash: "e09d65f8aae6b6ce3f575bc65d1e3fe7bdc23af5b2e9da2fd2f2749e219ad69c", outputIndex: 0 };
 
         const redeemer = Data.to(new Constr(0, [fromText("Demo!")]));
@@ -151,69 +144,13 @@ const LucidPage: NextPageWithLayout = () => {
                         Tx ID:    ${txHash}
                         Redeemer: ${redeemer}
                     `);
+       } catch (error) {
+        
+       }
+
+        
     }
-    async function _getAssetUtxo({ scriptAddress, asset, datum }: any) {
-        const koios = new KoiosProvider('preprod');
-
-        const utxos = await koios.fetchAddressUTxOs(
-            scriptAddress,
-            asset
-        );
-
-        const dataHash = resolveDataHash(datum);
-
-        let utxo = utxos.find((utxo: any) => {
-            return utxo.output.dataHash == dataHash;
-        });
-
-        return utxo;
-    }
-
-    const handUnLockAiken = async () => {
-        const script: PlutusScript = {
-            code: SC,
-            version: "V2",
-        };
-        const scriptAddress = resolvePlutusScriptAddress(script, 0);
-        const hash = resolvePaymentKeyHash((await wallet.getUsedAddresses())[0]);
-
-        const assetUtxo = await _getAssetUtxo({
-            scriptAddress: scriptAddress,
-            asset: 'lovelace',
-            datum: 'Demo!',
-        });
-
-        console.log("checkutoxoaiken----", assetUtxo)
-
-        // get wallet change address
-        const address = await wallet.getChangeAddress();
-
-        // create the unlock asset transaction
-        const tx = new Transaction({ initiator: wallet })
-            .redeemValue({
-                value: assetUtxo,
-                script: script,
-                datum: 'Demo!',
-            })
-            .sendValue(address, assetUtxo) // address is recipient address
-            .setRequiredSigners([address]);
-
-        const unsignedTx = await tx.build();
-        // note that the partial sign is set to true
-        const signedTx = await wallet.signTx(unsignedTx, true);
-        const txHash = await wallet.submitTx(signedTx);
-        console.log("txHash", txHash);
-
-        if (txHash) {
-            const koios = new KoiosProvider("preprod");
-            koios.onTxConfirmed(txHash, () => {
-                console.log("check----", txHash)
-            });
-        }
-    }
-
-
-
+  
 
     return (
         <>
@@ -223,7 +160,6 @@ const LucidPage: NextPageWithLayout = () => {
             <p>Total: {balance}</p>
             <button onClick={handLock}>Lock</button>
             <button onClick={handUnLock}>UnLock</button>
-            <button onClick={handUnLockAiken}>UnLockAiken</button>
         </>
 
     );
